@@ -1,0 +1,10 @@
+{
+  "name": "KTV 動漫歌點播站",
+  "short_name": "動漫KTV",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fff5fb",
+  "theme_color": "#ff7eb6",
+  "lang": "zh-Hant-TW",
+  "icons": [{ "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
