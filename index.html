@@ -19,7 +19,7 @@
 
 <header class="top">
   <div class="brand">
-    <span class="logo">🎤</span>
+    <span class="logo" aria-hidden="true">🎤</span>
     <div>
       <h1>KTV 動漫歌點播站</h1>
       <p class="sub"><span lang="ja">アニソン・カラオケ検索</span> 動漫歌KTV查詢 ✦ <span id="count">…</span> 首已確認</p>
@@ -37,10 +37,10 @@
 <div class="bar">
   <div id="where" class="where" role="group" aria-label="我在哪家 KTV" hidden></div>
   <div class="searchbox">
-    <span class="mag">🔍</span>
-    <input id="q" type="search" placeholder="搜尋歌名、歌手、動漫…（中／日／英、假名、羅馬拼音皆可）" autocomplete="off">
+    <span class="mag" aria-hidden="true">🔍</span>
+    <input id="q" type="search" aria-label="搜尋歌名、歌手、動漫" enterkeyhint="search" placeholder="搜尋歌名、歌手、動漫…（中／日／英、假名、羅馬拼音皆可）" autocomplete="off">
   </div>
-  <nav class="tabs" role="tablist">
+  <nav class="tabs" aria-label="分類">
     <button data-tab="all" class="on">全部</button>
     <button data-tab="artist">歌手</button>
     <button data-tab="anime">動漫</button>
@@ -72,8 +72,9 @@
   <p class="upd">資料更新：<span id="updated"></span>　只列出至少一家 KTV 確認過的歌；「?」表示這家 KTV 還在確認中。</p>
 </footer>
 
-<dialog id="dlg"><form method="dialog" class="dlg"><div id="dlgbody"></div><button class="close" value="x" aria-label="關閉">✕</button></form></dialog>
+<dialog id="dlg" aria-labelledby="dlgtitle"><form method="dialog" class="dlg"><div id="dlgbody"></div><button class="close" value="x" aria-label="關閉">✕</button></form></dialog>
 <div id="toast" class="toast" role="status"></div>
+<p id="status" class="sr" role="status"></p>
 
 <script src="config.js"></script>
 <script src="app.js"></script>

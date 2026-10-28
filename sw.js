@@ -1,5 +1,5 @@
 // 離線快取：外殼用快取優先，歌曲資料用網路優先（確保表單更新後同步）
-const CACHE = "ktv-anime-v1";
+const CACHE = "ktv-anime-v2"; // 外殼（HTML／CSS／JS）有改版時要加 1，舊使用者才會換到新版
 const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "assets/icon.svg"];
 self.addEventListener("install", (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener("activate", (e) => e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())));

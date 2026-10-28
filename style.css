@@ -72,6 +72,9 @@ h1 { margin: 0; font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 800; lette
 .searchbox input { width: 100%; font: inherit; font-size: 1rem; padding: .7em 1em .7em 2.6em; border-radius: 999px;
   border: 2px solid var(--pink2); background: var(--card); color: var(--ink); outline: none; box-shadow: var(--shadow); }
 .searchbox input:focus { border-color: var(--pink); }
+/* 鍵盤焦點：統一一圈深色框，三種主題都看得清楚（滑鼠／觸控點擊不會出現） */
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.searchbox input:focus-visible { outline-offset: 1px; }
 .mag { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); }
 .tabs { display: flex; gap: 6px; margin-top: var(--sp-2); overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .tabs button { flex: none; font: inherit; font-weight: 700; font-size: var(--fs-label); min-height: var(--tap); padding: 0 14px; border-radius: 999px; cursor: pointer;
@@ -182,10 +185,19 @@ dialog::backdrop { background: #3a2e4f66; backdrop-filter: blur(3px); }
 .pllist { display: grid; gap: 8px; margin: 10px 0; }
 .pllist label { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--card); }
 .row { display: flex; gap: 6px; }
-.row input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); }
+.row input { flex: 1; min-width: 0; min-height: var(--tap); font: inherit; padding: 0 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 40px); opacity: 0; transition: .25s; z-index: 20;
   background: var(--ink); color: var(--bg); padding: 9px 18px; border-radius: 999px; font-size: var(--fs-label); pointer-events: none; }
 .toast.show { transform: translate(-50%, 0); opacity: 1; }
+/* 用 left/right 置中，訊息寬度可用到整個畫面（left:50% 只剩半個畫面寬，會把字擠到斷行） */
+.toast, .toast.show { left: 16px; right: 16px; margin: 0 auto; width: fit-content; max-width: 560px; text-align: center; }
+.toast { transform: translateY(40px); }
+.toast.show { transform: none; }
+.toast.act { pointer-events: auto; display: flex; align-items: center; gap: var(--sp-3); padding-right: 6px; }
+.toast button { flex: none; min-height: 36px; padding: 0 var(--sp-3); font: inherit; font-weight: 800; border: 0; border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.field { display: grid; gap: var(--sp-1); font-size: var(--fs-label); font-weight: 700; margin: var(--sp-3) 0; }
+.field input, .field-input { width: 100%; min-height: var(--tap); font: inherit; font-weight: 400; padding: 0 var(--sp-3); border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); }
+.chip { overflow-wrap: anywhere; }
 @media (max-width: 560px) { .artist { margin-left: 0; width: 100%; } }
 
 /* 顯示設定 */
