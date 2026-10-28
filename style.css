@@ -59,7 +59,7 @@ header, .bar, main, footer { position: relative; z-index: 1; max-width: 960px; m
 .prow { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
 .plabel { min-width: 2.5em; font-size: var(--fs-label); font-weight: 700; color: var(--muted); }
 /* 搜尋與分頁固定在畫面上方：滑到清單任何位置都能直接重新搜尋 */
-.bar { position: sticky; top: 0; z-index: 5; padding-top: var(--sp-3); padding-bottom: var(--sp-2); background: var(--bg); }
+.bar { position: sticky; top: 0; z-index: 5; padding-top: var(--sp-2); padding-bottom: 6px; background: var(--bg); }
 .bar::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: var(--sp-3); pointer-events: none;
   background: linear-gradient(180deg, var(--bg), transparent); }
 .logo { font-size: 34px; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px;
@@ -93,12 +93,20 @@ h1 { margin: 0; font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 800; lette
 .chip.add { border-style: dashed; color: var(--pink); }
 .grp { width: 100%; font-size: var(--fs-meta); font-weight: 800; color: var(--pink); margin-top: 6px; }
 .grp:first-child { margin-top: 0; }
-.ktvpick { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-.ktvbtn { font: inherit; font-weight: 800; font-size: 1.125rem; padding: 14px 8px; border-radius: 18px; cursor: pointer; display: grid; gap: 4px; justify-items: center;
-  border: 2px solid var(--line); background: var(--card); color: var(--ink); }
-.ktvbtn i { font-style: normal; font-size: var(--fs-meta); font-weight: 400; color: var(--muted); }
-.ktvbtn.on { border-color: var(--mint); box-shadow: 0 0 0 3px #3fd6a633, 0 0 18px #3fd6a655; }
-.lampbig { font-size: 1.625rem; }
+/* 我在哪家 KTV：全站狀態，跟搜尋一起固定在上方 */
+/* 按鈕平分整排、不橫向捲動，選中的那家永遠看得到；字級大到放不下時先藏曲數 */
+.bar { container-type: inline-size; }
+.where { display: flex; align-items: center; gap: 6px; margin-bottom: var(--sp-2); }
+.where[hidden] { display: none; }
+.wlabel { flex: none; font-size: var(--fs-label); font-weight: 700; color: var(--muted); padding-right: 2px; }
+.where button { flex: 1 1 auto; min-width: 0; justify-content: center; display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 0 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  font: inherit; font-size: var(--fs-label); font-weight: 700; border: 2px solid var(--line); background: var(--card); color: var(--ink); }
+.where button i { font-style: normal; font-weight: 400; font-size: var(--fs-meta); color: var(--muted); font-variant-numeric: tabular-nums; }
+.where button[aria-pressed="true"] { border-color: var(--mint); background: #3fd6a626; }
+.where button[aria-pressed="true"] i { color: var(--ink); }
+@container (max-width: 18rem) { .where button i { display: none; } }
+.sect { margin-top: var(--sp-3); }
+.sect h2 { margin: 0; font-size: var(--fs-label); font-weight: 800; color: var(--muted); }
 .pltools { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
 .pltools button, .row button { font: inherit; font-size: var(--fs-label); border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; min-height: var(--tap); padding: 0 var(--sp-3); cursor: pointer; }
 
@@ -155,7 +163,6 @@ h1 { margin: 0; font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 800; lette
 .legend .pendingnote { flex-basis: 100%; }
 .legend .pendingnote:empty { display: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.ktvbtn.pending { cursor: default; border-style: dashed; color: var(--muted); }
 .clearq { margin-top: var(--sp-3); min-height: var(--tap); padding: 0 var(--sp-4); font: inherit; font-weight: 700; border-radius: 999px;
   border: 2px solid var(--pink2); background: var(--card); color: var(--ink); cursor: pointer; }
 .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0; }
@@ -199,4 +206,7 @@ dialog::backdrop { background: #3a2e4f66; backdrop-filter: blur(3px); }
 .ktv { justify-content: center; padding: 6px 4px; border-radius: 12px; font-size: var(--fs-label); border: 1.5px solid transparent; white-space: nowrap; }
 .ktv.y { border-color: var(--mint); }
 .ktv.n { opacity: .75; }
+/* 所在那家排第一格並加粗外框 */
+.ktv.me { font-weight: 800; border-width: 2.5px; }
+.ktv.me.u, .ktv.me.n { border-color: var(--muted); }
 .lamp { width: 1.25em; height: 1.25em; font-size: .8rem; flex: none; }
