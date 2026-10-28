@@ -79,7 +79,8 @@ h1 { margin: 0; font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 800; lette
 .tabs { display: flex; gap: 6px; margin-top: var(--sp-2); overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .tabs button { flex: none; font: inherit; font-weight: 700; font-size: var(--fs-label); min-height: var(--tap); padding: 0 14px; border-radius: 999px; cursor: pointer;
   border: 2px solid var(--line); background: var(--card); color: var(--ink); }
-.tabs button.on { background: linear-gradient(135deg, var(--pink), #b57cff); border-color: transparent; color: #fff; box-shadow: var(--shadow); }
+/* 漸層要從邊框外緣開始畫：預設從邊框內側起算，透明邊框會露出重複貼上的另一端顏色，左右各多一條反色細邊 */
+.tabs button.on { background: linear-gradient(135deg, var(--pink), #b57cff) border-box; border-color: transparent; color: #fff; box-shadow: var(--shadow); }
 
 .facet { margin: 8px 0; padding: 12px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
 .facet[hidden] { display: none; }
