@@ -85,13 +85,13 @@
   // ---------- 畫面 ----------
   const lamp = (v) => (v === 1 ? '<span class="lamp on" title="可點播">✓</span>' : v === 0 ? '<span class="lamp off" title="無">✕</span>' : '<span class="lamp unk" title="待確認">?</span>');
   function card(s) {
-    const kana = s.kana && s.kana !== s.title ? `<span class="kana">${esc(s.kana)}</span>` : "";
+    const kana = s.kana && s.kana !== s.title ? `<span class="kana" lang="ja">${esc(s.kana)}</span>` : "";
     const zh = s.zh ? `<span class="zh">${esc(s.zh)}</span>` : "";
     const anime = s.anime
-      ? `<span class="anime">📺 ${esc(s.animeJa)}${s.animeZh && s.animeZh !== s.animeJa ? ` <span class="zhs">${esc(s.animeZh)}</span>` : ""}</span>`
-      : `<span class="anime muted">🎵 アニメ以外 <span class="zhs">非動漫歌曲</span></span>`;
+      ? `<span class="anime">📺 <span lang="ja">${esc(s.animeJa)}</span>${s.animeZh && s.animeZh !== s.animeJa ? ` <span class="zhs">${esc(s.animeZh)}</span>` : ""}</span>`
+      : `<span class="anime muted">🎵 <span lang="ja">アニメ以外</span> <span class="zhs">非動漫歌曲</span></span>`;
     return `<li class="card" data-id="${s.id}">
-      <div class="r1"><b class="title">${esc(s.title)}</b>${kana}${zh}<a class="artist" href="#" data-artist="${esc(s.artist)}">🎙 ${esc(s.artist)}</a></div>
+      <div class="r1"><b class="title" lang="ja">${esc(s.title)}</b>${kana}${zh}<a class="artist" href="#" data-artist="${esc(s.artist)}">🎙 ${esc(s.artist)}</a></div>
       <div class="r2">${anime}${s.type ? `<span class="tag">${esc(s.type)}</span>` : ""}${s.year ? `<span class="tag yr">${s.year}</span>` : ""}${/舞/.test(s.note) ? '<span class="badge dance">舞</span>' : ""}
         <span class="tools"><button class="heart ${inAnyPl(s.id) ? "on" : ""}" data-fav="${s.id}" aria-label="加入歌單">♥</button><button class="bug" data-bug="${s.id}" aria-label="回報這首歌的錯誤">🐞</button></span></div>
       <div class="r3">${DB.ktvs.map((k) => `<span class="ktv ${s.ktv[k] === 1 ? "y" : s.ktv[k] === 0 ? "n" : "u"}" title="${esc(k)}：${s.ktv[k] === 1 ? "可點播" : s.ktv[k] === 0 ? "無" : "待確認"}">${lamp(s.ktv[k])}<span>${esc(k)}</span></span>`).join("")}</div>
@@ -137,10 +137,10 @@
         const grp = state.animeSort === "kana" ? gyou(s.animeKana || s.animeJa) : [...s.animeZh.replace(/^[【\[(（]/, "")][0];
         if (grp !== last) { h += `<span class="grp">${esc(grp)}</span>`; last = grp; }
         const [main, sub] = [s.animeJa, s.animeZh]; // 統一日文在前、繁中在後
-        h += `<button class="chip ${state.filter?.v === k ? "on" : ""}" data-anime="${esc(k)}">${esc(main)}${sub !== main ? `<small>${esc(sub)}</small>` : ""}<i>${n}</i></button>`;
+        h += `<button class="chip ${state.filter?.v === k ? "on" : ""}" data-anime="${esc(k)}"><span lang="ja">${esc(main)}</span>${sub !== main ? `<small>${esc(sub)}</small>` : ""}<i>${n}</i></button>`;
       }
       const nn = DB.songs.filter((s) => !s.anime).length;
-      h += `<span class="grp">其他</span><button class="chip ${state.filter?.v === NON_ANIME ? "on" : ""}" data-anime="${NON_ANIME}">アニメ以外<small>非動漫歌曲</small><i>${nn}</i></button></div>`;
+      h += `<span class="grp">其他</span><button class="chip ${state.filter?.v === NON_ANIME ? "on" : ""}" data-anime="${NON_ANIME}"><span lang="ja">アニメ以外</span><small>非動漫歌曲</small><i>${nn}</i></button></div>`;
     } else if (state.tab === "year") {
       const cnt = countBy((s) => s.year || 0);
       const ys = [...cnt].sort((a, b) => b[0] - a[0]);
@@ -216,7 +216,8 @@
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF))); } catch {}
   const SIZES = [0.9, 1, 1.15, 1.3, 1.5];
   function applyPrefs() {
-    document.documentElement.style.fontSize = 18 * SIZES[prefs.size] + "px";
+    // 用百分比而非 px：保留使用者在瀏覽器／系統設定的預設字級（預設 16px × 112.5% = 18px）
+    document.documentElement.style.fontSize = 112.5 * SIZES[prefs.size] + "%";
     document.documentElement.dataset.theme = prefs.theme;
     document.querySelectorAll("[data-theme-set]").forEach((b) => b.classList.toggle("on", b.dataset.themeSet === prefs.theme));
     const lbl = $("#fsval"); if (lbl) lbl.textContent = ["小", "標準", "大", "特大", "超大"][prefs.size];
