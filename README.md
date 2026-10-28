@@ -9,7 +9,7 @@
 - **長輩友善**：字級 5 段可調（A－／A＋）、護眼米黃模式（預設）／明亮／夜間，設定會記住
 - **日文在前、繁中在後**：歌名、動漫名一律日文先、中文後
 - **我的歌單**：可建多個歌單收藏（存在手機／瀏覽器），可產生連結分享給朋友
-- **內容反饋、錯誤回報、贊助支持**
+- **意見回饋、錯誤回報、贊助支持**
 
 只顯示「已確認」的歌曲：排除「待建置」列，且至少一家 KTV 已填 O／X；個別 KTV 空白顯示為「?」待確認。
 
@@ -26,7 +26,7 @@ python -m http.server 8000   # 開 http://localhost:8000
 ```
 
 ## 設定
-`config.js`：GitHub repo 名稱（反饋／回報開 Issue 用）、可選的 Google 表單網址、贊助連結。
+`config.js`：GitHub repo 名稱（意見回饋／錯誤回報開 Issue 用）、可選的 Google 表單網址、贊助連結。
 
 ## 部署
 repo **Settings → Pages → Source 選 GitHub Actions**，push 後即上線於 `https://<帳號>.github.io/ktv-anime-songs/`。

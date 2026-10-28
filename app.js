@@ -83,7 +83,12 @@
   const inAnyPl = (id) => playlists.some((p) => p.songs.includes(id));
 
   // ---------- 畫面 ----------
-  const lamp = (v) => (v === 1 ? '<span class="lamp on" title="可點播">✓</span>' : v === 0 ? '<span class="lamp off" title="無">✕</span>' : '<span class="lamp unk" title="待確認">?</span>');
+  // 燈號：符號只給眼睛看，報讀時唸「凱悅：可點播」
+  const LAMP = { 1: ["y", "on", "✓", "可點播"], 0: ["n", "off", "✕", "沒有"] };
+  const ktvCell = (k, v) => {
+    const [cls, lc, sym, word] = LAMP[v] || ["u", "unk", "?", "待確認"];
+    return `<span class="ktv ${cls}" title="${esc(k)}：${word}"><span class="lamp ${lc}" aria-hidden="true">${sym}</span>${esc(k)}<span class="sr">：${word}</span></span>`;
+  };
   function card(s) {
     const kana = s.kana && s.kana !== s.title ? `<span class="kana" lang="ja">${esc(s.kana)}</span>` : "";
     const zh = s.zh ? `<span class="zh">${esc(s.zh)}</span>` : "";
@@ -92,10 +97,10 @@
       : `<span class="anime muted">🎵 <span lang="ja">アニメ以外</span> <span class="zhs">非動漫歌曲</span></span>`;
     return `<li class="card" data-id="${s.id}">
       <div class="r1"><b class="title" lang="ja">${esc(s.title)}</b>${kana}${zh}<a class="artist" href="#" data-artist="${esc(s.artist)}">🎙 ${esc(s.artist)}</a></div>
-      <button class="heart ${inAnyPl(s.id) ? "on" : ""}" data-fav="${s.id}" aria-label="加入歌單">♥</button>
+      <button class="heart ${inAnyPl(s.id) ? "on" : ""}" data-fav="${s.id}" aria-label="${inAnyPl(s.id) ? "已收藏，管理歌單" : "加入歌單"}">♥</button>
       <div class="r2">${anime}${s.type ? `<span class="tag">${esc(s.type)}</span>` : ""}${s.year ? `<span class="tag yr">${s.year}</span>` : ""}${/舞/.test(s.note) ? '<span class="badge dance">舞</span>' : ""}
         <button class="bug" data-bug="${s.id}" aria-label="回報這首歌的錯誤">🐞</button></div>
-      <div class="r3">${DB.ktvs.map((k) => `<span class="ktv ${s.ktv[k] === 1 ? "y" : s.ktv[k] === 0 ? "n" : "u"}" title="${esc(k)}：${s.ktv[k] === 1 ? "可點播" : s.ktv[k] === 0 ? "無" : "待確認"}">${lamp(s.ktv[k])}<span>${esc(k)}</span></span>`).join("")}</div>
+      <div class="r3" style="--n:${DB.known.length}">${DB.known.map((k) => ktvCell(k, s.ktv[k])).join("")}</div>
     </li>`;
   }
 
@@ -154,6 +159,7 @@
       h = hh + "</div>";
     } else if (state.tab === "ktv") {
       h = `<div class="ktvpick">${DB.ktvs.map((k) => {
+        if (DB.pending.includes(k)) return `<button class="ktvbtn pending" disabled><span class="lampbig">🎤</span>${esc(k)}<i>曲目整理中</i></button>`;
         const n = DB.songs.filter((s) => s.ktv[k] === 1).length;
         return `<button class="ktvbtn ${state.ktv === k ? "on" : ""}" data-ktv="${esc(k)}"><span class="lampbig">🎤</span>${esc(k)}<i>${n} 首可點</i></button>`;
       }).join("")}</div>`;
@@ -193,9 +199,10 @@
     const needPick = (["artist", "anime", "year"].includes(state.tab) && !state.filter && !state.q) || (state.tab === "ktv" && !state.ktv && !state.q);
     const fb = $("#filterbar");
     if (needPick) {
-      fb.innerHTML = `<p class="hint">↑ 請選擇一個${{ artist: "歌手", anime: "動漫", year: "年份", ktv: "KTV" }[state.tab]}</p>`;
+      fb.innerHTML = `<p class="hint">↑ 先從上面選${{ artist: "一位歌手", anime: "一部動漫", year: "一個年份", ktv: "一家 KTV" }[state.tab]}</p>`;
       $("#list").innerHTML = "";
       $("#empty").hidden = true;
+      $("#legend").hidden = true;
       return;
     }
     const list = currentSongs();
@@ -205,10 +212,13 @@
         .map(([v, t]) => `<option value="${v}" ${state.sort === v ? "selected" : ""}>${t}</option>`).join("")}</select>`;
     fb.innerHTML = `<span class="res">${label ? `<b>${esc(label)}</b> · ` : ""}${list.length} 首${state.q ? `（搜尋「${esc(state.q)}」）` : ""}</span>${sortSel}`;
     $("#list").innerHTML = list.map(card).join("");
+    $("#legend").hidden = !list.length;
     const empty = $("#empty");
     empty.hidden = list.length > 0;
-    if (state.tab === "fav" && !list.length) empty.innerHTML = "這個歌單還是空的～<br>在歌曲卡片按 ♥ 就能收藏 ✧";
-    else empty.innerHTML = '找不到符合的歌曲 (´・ω・`)<br>試試其他關鍵字，或<a href="#" data-open="feedback">告訴我們想新增的歌</a>';
+    const q = esc(state.q), clear = '<br><button class="clearq" data-clearq>清除搜尋</button>';
+    if (state.tab === "fav" && !state.q) empty.innerHTML = "這個歌單還是空的～<br>在歌曲卡片按 ♥ 就能收藏 ✧";
+    else if (state.tab === "fav") empty.innerHTML = `這個歌單裡沒有符合「${q}」的歌${clear}`;
+    else empty.innerHTML = `找不到「${q}」(´・ω・\`)<br>日文、中文、羅馬拼音都能搜<br>換個寫法試試看，或<a href="#" data-open="feedback">告訴我們想新增這首歌</a>${clear}`;
   }
 
   // ---------- 顯示設定：字級、護眼（存在本機） ----------
@@ -249,15 +259,15 @@
     } else {
       const isReport = kind === "report";
       const form = isReport ? CFG.reportForm : CFG.feedbackForm;
-      const title = isReport ? (s ? `[錯誤回報] ${s.title} - ${s.artist}` : "[錯誤回報] ") : "[內容反饋] ";
+      const title = isReport ? (s ? `[錯誤回報] ${s.title} - ${s.artist}` : "[錯誤回報] ") : "[意見回饋] ";
       const text = isReport
         ? `### 哪一首歌\n${s ? `${s.title} / ${s.artist}（id: ${s.id}）` : ""}\n\n### 哪裡有錯（例如：某家 KTV 其實點得到、假名或中譯錯誤）\n\n\n### 正確資料／歌曲編號（可選）\n`
         : `### 想新增的歌曲或建議\n- 歌名：\n- 歌手：\n- 動漫：\n- 哪家 KTV 有：\n`;
-      const url = form || issueUrl(title, text, isReport ? "錯誤回報" : "內容反饋");
-      body.innerHTML = `<h3>${isReport ? "🐞 錯誤回報" : "💌 內容反饋"}</h3>
-        <p>${isReport ? "發現 KTV 亮燈不正確、歌名／假名／中譯有誤？" : "想新增歌曲、補充資料，或對網站有建議？"}歡迎告訴我們，確認後會更新到表單並同步到 App。</p>
+      const url = form || issueUrl(title, text, isReport ? "錯誤回報" : "意見回饋");
+      body.innerHTML = `<h3>${isReport ? "🐞 錯誤回報" : "💌 意見回饋"}</h3>
+        <p>${isReport ? "發現 KTV 亮燈不正確、歌名／假名／中譯有誤？" : "想新增歌曲、補充資料，或對網站有建議？"}歡迎告訴我們，確認後就會更新到網站上。</p>
         ${s ? `<p class="muted">歌曲：${esc(s.title)} — ${esc(s.artist)}</p>` : ""}
-        <a class="big" href="${esc(url)}" target="_blank" rel="noopener">${form ? "開啟表單" : "前往 GitHub 填寫（需登入）"}</a>`;
+        <a class="big" href="${esc(url)}" target="_blank" rel="noopener">${form ? "開啟表單" : "到 GitHub 填寫（需要 GitHub 帳號）"}</a>`;
     }
     dlg.showModal();
   }
@@ -272,6 +282,8 @@
       t.setAttribute("aria-expanded", open); $("#prefs").hidden = !open;
       return;
     }
+    if (d.reload != null) return location.reload();
+    if (d.clearq != null) { state.q = ""; $("#q").value = ""; $("#q").focus(); return render(); }
     if (d.fs) { prefs.size = Math.max(0, Math.min(SIZES.length - 1, prefs.size + +d.fs)); return applyPrefs(); }
     if (d.themeSet) { prefs.theme = d.themeSet; return applyPrefs(); }
     if (d.tab) {
@@ -304,7 +316,7 @@
       const n = prompt("歌單名稱", p.name); if (!n) return; p.name = n.trim(); savePl();
     } else if (d.pldel != null) {
       const p = playlists.find((x) => x.id === state.playlist);
-      if (!confirm(`確定刪除「${p.name}」？`)) return;
+      if (!confirm(`刪除歌單「${p.name}」？裡面收藏的 ${p.songs.length} 首歌會一起移除，刪除後無法復原。`)) return;
       playlists = playlists.filter((x) => x !== p);
       if (!playlists.length) playlists = [{ id: "fav", name: "我的最愛", songs: [] }];
       state.playlist = playlists[0].id; savePl();
@@ -355,11 +367,17 @@
       s._o = norm([s.anime, s.animeZh, s.animeJa, s.animeKana, s.type, s.year].join("|"));
       s.kanaSort = /^[ぁ-ヿ]/.test(s.kana) ? s.kana : s.title;
     }
+    // 整家都還沒填資料的 KTV：卡片上不顯示燈號，KTV 分頁標「曲目整理中」；一有資料就自動恢復
+    DB.pending = DB.ktvs.filter((k) => DB.songs.every((s) => s.ktv[k] == null));
+    DB.known = DB.ktvs.filter((k) => !DB.pending.includes(k));
+    $("#pendingnote").textContent = DB.pending.length ? `${DB.pending.join("、")}的曲目還在整理中，目前先不顯示。` : "";
     $("#count").textContent = DB.songs.length;
     $("#updated").textContent = new Date(DB.updated).toLocaleDateString("zh-TW");
     importShared();
     render();
-  }).catch(() => { $("#list").innerHTML = '<li class="empty">資料載入失敗，請重新整理 (；´Д｀)</li>'; });
+  }).catch(() => {
+    $("#list").innerHTML = '<li class="empty">歌曲資料沒有載入成功，可能是網路不穩 (；´Д｀)<br><button class="clearq" data-reload>重新載入</button></li>';
+  });
 
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 })();
