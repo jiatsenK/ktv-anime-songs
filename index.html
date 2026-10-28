@@ -24,11 +24,17 @@
       <h1>KTV 動漫歌點播站</h1>
       <p class="sub"><span lang="ja">アニソン・カラオケ検索</span> 動漫歌KTV查詢 ✦ <span id="count">…</span> 首已確認</p>
     </div>
+    <button class="prefsbtn" data-prefs aria-expanded="false" aria-controls="prefs" aria-label="字級與主題設定"><b>Aa</b>字級</button>
   </div>
-  <div class="prefs" aria-label="顯示設定">
-    <span class="fs"><button data-fs="-1" aria-label="字變小">A－</button><b id="fsval">標準</b><button data-fs="1" aria-label="字變大">A＋</button></span>
-    <span class="seg th"><button data-theme-set="eye">🌿 護眼</button><button data-theme-set="light">☀️ 明亮</button><button data-theme-set="dark">🌙 夜間</button></span>
+  <div class="prefs" id="prefs" role="group" aria-label="顯示設定" hidden>
+    <div class="prow"><span class="plabel">字級</span>
+      <span class="fs"><button data-fs="-1" aria-label="字變小">A－</button><b id="fsval">標準</b><button data-fs="1" aria-label="字變大">A＋</button></span></div>
+    <div class="prow"><span class="plabel">主題</span>
+      <span class="seg th"><button data-theme-set="eye">🌿 護眼</button><button data-theme-set="light">☀️ 明亮</button><button data-theme-set="dark">🌙 夜間</button></span></div>
   </div>
+</header>
+
+<div class="bar">
   <div class="searchbox">
     <span class="mag">🔍</span>
     <input id="q" type="search" placeholder="搜尋歌名、歌手、動漫…（中／日／英、假名、羅馬拼音皆可）" autocomplete="off">
@@ -41,7 +47,7 @@
     <button data-tab="ktv">各家KTV</button>
     <button data-tab="fav">♥ 我的歌單</button>
   </nav>
-</header>
+</div>
 
 <main>
   <section id="facet" class="facet"></section>

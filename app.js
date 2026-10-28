@@ -92,8 +92,9 @@
       : `<span class="anime muted">🎵 <span lang="ja">アニメ以外</span> <span class="zhs">非動漫歌曲</span></span>`;
     return `<li class="card" data-id="${s.id}">
       <div class="r1"><b class="title" lang="ja">${esc(s.title)}</b>${kana}${zh}<a class="artist" href="#" data-artist="${esc(s.artist)}">🎙 ${esc(s.artist)}</a></div>
+      <button class="heart ${inAnyPl(s.id) ? "on" : ""}" data-fav="${s.id}" aria-label="加入歌單">♥</button>
       <div class="r2">${anime}${s.type ? `<span class="tag">${esc(s.type)}</span>` : ""}${s.year ? `<span class="tag yr">${s.year}</span>` : ""}${/舞/.test(s.note) ? '<span class="badge dance">舞</span>' : ""}
-        <span class="tools"><button class="heart ${inAnyPl(s.id) ? "on" : ""}" data-fav="${s.id}" aria-label="加入歌單">♥</button><button class="bug" data-bug="${s.id}" aria-label="回報這首歌的錯誤">🐞</button></span></div>
+        <button class="bug" data-bug="${s.id}" aria-label="回報這首歌的錯誤">🐞</button></div>
       <div class="r3">${DB.ktvs.map((k) => `<span class="ktv ${s.ktv[k] === 1 ? "y" : s.ktv[k] === 0 ? "n" : "u"}" title="${esc(k)}：${s.ktv[k] === 1 ? "可點播" : s.ktv[k] === 0 ? "無" : "待確認"}">${lamp(s.ktv[k])}<span>${esc(k)}</span></span>`).join("")}</div>
     </li>`;
   }
@@ -266,6 +267,11 @@
     const t = e.target.closest("button, a");
     if (!t) return;
     const d = t.dataset;
+    if (d.prefs != null) {
+      const open = t.getAttribute("aria-expanded") !== "true";
+      t.setAttribute("aria-expanded", open); $("#prefs").hidden = !open;
+      return;
+    }
     if (d.fs) { prefs.size = Math.max(0, Math.min(SIZES.length - 1, prefs.size + +d.fs)); return applyPrefs(); }
     if (d.themeSet) { prefs.theme = d.themeSet; return applyPrefs(); }
     if (d.tab) {
