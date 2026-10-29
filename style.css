@@ -11,6 +11,14 @@
   --red: #ff6b81;
   --line: #f1dcea;
   --shadow: 0 6px 18px #d77bb02a;
+  /* 字級角色（rem 跟著 A－／A＋ 一起縮放）：
+     meta 最小一級，「小」字級下仍有 13px；label 是按鈕、標籤、副資訊；title 是歌名 */
+  --fs-meta: 0.8125rem;
+  --fs-label: 0.875rem;
+  --fs-title: 1.1875rem;
+  /* 間距：4 的倍數；--tap 是所有可點元素的最小點擊高度 */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-6: 24px;
+  --tap: 44px;
 }
 :root[data-theme="eye"] {
   /* 護眼：米黃暖色底、降低藍光與對比刺眼感 */
@@ -24,8 +32,9 @@
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0; color: var(--ink); min-height: 100vh;
-  font-family: "M PLUS Rounded 1c", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  margin: 0; color: var(--ink); min-height: 100vh; line-height: 1.5;
+  /* M PLUS Rounded 1c 缺部分繁中字（悅、覓、擊…），由同為圓體的 Huninn（jf 粉圓）補上，避免同一行混進方角黑體 */
+  font-family: "M PLUS Rounded 1c", "Huninn", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   background: radial-gradient(circle at 10% 0%, var(--pink2), transparent 40%),
               radial-gradient(circle at 100% 30%, #c9d8ff55, transparent 40%),
               linear-gradient(180deg, var(--bg), var(--bg2));
@@ -34,72 +43,107 @@ body {
 .sakura { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5;
   background-image: radial-gradient(#ffb7d5 1.5px, transparent 2px), radial-gradient(#b8ccff 1.2px, transparent 2px);
   background-size: 46px 46px, 70px 70px; background-position: 0 0, 23px 31px; }
-header, main, footer { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 16px; }
+header, .bar, main, footer { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 var(--sp-4); }
 
-.top { position: relative; z-index: 5; padding-top: 12px; padding-bottom: 8px;
-  background: linear-gradient(180deg, var(--bg) 70%, transparent); backdrop-filter: blur(6px); }
-.brand { display: flex; align-items: center; gap: 12px; }
-.logo { font-size: 2.125rem; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px;
+.top { padding-top: var(--sp-3); }
+.brand { display: flex; align-items: center; gap: var(--sp-3); }
+.brand > div { flex: 1; min-width: 0; }
+/* 字級／主題設定一次就好，收進「Aa 字級」，把頁面上方留給搜尋 */
+.prefsbtn { flex: none; align-self: flex-start; display: inline-flex; align-items: center; gap: var(--sp-1); min-height: var(--tap);
+  font: inherit; font-size: var(--fs-label); font-weight: 700; padding: 0 var(--sp-3); border-radius: 999px; cursor: pointer;
+  border: 2px solid var(--line); background: var(--card); color: var(--ink); }
+.prefsbtn b { font-size: 1.15em; }
+.prefsbtn[aria-expanded="true"] { border-color: var(--pink); }
+.prefs { margin-top: var(--sp-3); padding: var(--sp-3); border-radius: 20px; background: var(--card); box-shadow: var(--shadow); display: grid; gap: var(--sp-2); }
+.prefs[hidden] { display: none; }
+.prow { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.plabel { min-width: 2.5em; font-size: var(--fs-label); font-weight: 700; color: var(--muted); }
+/* 搜尋與分頁固定在畫面上方：滑到清單任何位置都能直接重新搜尋 */
+.bar { position: sticky; top: 0; z-index: 5; padding-top: var(--sp-2); padding-bottom: 6px; background: var(--bg); }
+.bar::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: var(--sp-3); pointer-events: none;
+  background: linear-gradient(180deg, var(--bg), transparent); }
+.logo { font-size: 34px; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px;
   background: linear-gradient(135deg, var(--pink), var(--blue)); box-shadow: var(--shadow); transform: rotate(-6deg); }
-h1 { margin: 0; font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 800; letter-spacing: .02em;
+h1 { margin: 0; font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 800; letter-spacing: .02em; line-height: 1.25; text-wrap: balance;
   background: linear-gradient(90deg, var(--pink), #b57cff, var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.sub { margin: 2px 0 0; font-size: 0.8125rem; color: var(--muted); }
-.searchbox { margin-top: 12px; position: relative; }
+.sub { margin: 2px 0 0; font-size: var(--fs-meta); color: var(--muted); }
+#count { font-variant-numeric: tabular-nums; }
+.searchbox { position: relative; }
 .searchbox input { width: 100%; font: inherit; font-size: 1rem; padding: .7em 1em .7em 2.6em; border-radius: 999px;
   border: 2px solid var(--pink2); background: var(--card); color: var(--ink); outline: none; box-shadow: var(--shadow); }
 .searchbox input:focus { border-color: var(--pink); }
+/* 鍵盤焦點：統一一圈深色框，三種主題都看得清楚（滑鼠／觸控點擊不會出現） */
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.searchbox input:focus-visible { outline-offset: 1px; }
 .mag { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); }
-.tabs { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-.tabs button { flex: none; font: inherit; font-weight: 700; font-size: 0.875rem; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+.tabs { display: flex; gap: 6px; margin-top: var(--sp-2); overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.tabs button { flex: none; font: inherit; font-weight: 700; font-size: var(--fs-label); min-height: var(--tap); padding: 0 14px; border-radius: 999px; cursor: pointer;
   border: 2px solid var(--line); background: var(--card); color: var(--ink); }
-.tabs button.on { background: linear-gradient(135deg, var(--pink), #b57cff); border-color: transparent; color: #fff; box-shadow: var(--shadow); }
+/* 漸層要從邊框外緣開始畫：預設從邊框內側起算，透明邊框會露出重複貼上的另一端顏色，左右各多一條反色細邊 */
+.tabs button.on { background: linear-gradient(135deg, var(--pink), #b57cff) border-box; border-color: transparent; color: #fff; box-shadow: var(--shadow); }
 
 .facet { margin: 8px 0; padding: 12px; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); }
 .facet[hidden] { display: none; }
 .seg { display: inline-flex; background: var(--pink2); border-radius: 999px; padding: 3px; margin-bottom: 10px; flex-wrap: wrap; }
-.seg button { font: inherit; font-size: 0.8125rem; font-weight: 700; border: 0; background: none; color: var(--ink); padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.seg button { font: inherit; font-size: var(--fs-label); font-weight: 700; border: 0; background: none; color: var(--ink); min-height: var(--tap); padding: 0 12px; border-radius: 999px; cursor: pointer; }
 .seg button.on { background: var(--card); color: var(--pink); box-shadow: 0 2px 6px #0001; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-height: 42vh; overflow-y: auto; }
-.chip { font: inherit; font-size: 0.8125rem; padding: 5px 10px; border-radius: 12px; cursor: pointer; border: 1.5px solid var(--line);
+.chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; max-height: 42vh; overflow-y: auto; }
+.chip { font: inherit; font-size: var(--fs-label); line-height: 1.35; min-height: var(--tap); padding: 5px 12px; border-radius: 12px; cursor: pointer; border: 1.5px solid var(--line);
   background: transparent; color: var(--ink); display: inline-flex; align-items: center; gap: 5px; text-align: left; }
-.chip small { color: var(--muted); font-size: 0.6875rem; }
-.chip i { font-style: normal; font-size: 0.6875rem; background: var(--pink2); border-radius: 999px; padding: 0 6px; }
+.chip small { color: var(--muted); font-size: var(--fs-meta); }
+.chip i { font-style: normal; font-size: var(--fs-meta); font-variant-numeric: tabular-nums; background: var(--pink2); border-radius: 999px; padding: 0 6px; }
 .chip.on { border-color: var(--pink); background: var(--pink); color: #fff; }
 .chip.on small { color: #fff; } .chip.on i { background: #fff4; }
 .chip.add { border-style: dashed; color: var(--pink); }
-.grp { width: 100%; font-size: 0.75rem; font-weight: 800; color: var(--pink); margin-top: 6px; }
+.grp { width: 100%; font-size: var(--fs-meta); font-weight: 800; color: var(--pink); margin-top: 6px; }
 .grp:first-child { margin-top: 0; }
-.ktvpick { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-.ktvbtn { font: inherit; font-weight: 800; font-size: 1.125rem; padding: 14px 8px; border-radius: 18px; cursor: pointer; display: grid; gap: 4px; justify-items: center;
-  border: 2px solid var(--line); background: var(--card); color: var(--ink); }
-.ktvbtn i { font-style: normal; font-size: 0.75rem; font-weight: 400; color: var(--muted); }
-.ktvbtn.on { border-color: var(--mint); box-shadow: 0 0 0 3px #3fd6a633, 0 0 18px #3fd6a655; }
-.lampbig { font-size: 1.625rem; }
+/* 我在哪家 KTV：全站狀態，跟搜尋一起固定在上方 */
+/* 按鈕平分整排、不橫向捲動，選中的那家永遠看得到；字級大到放不下時先藏曲數 */
+.bar { container-type: inline-size; }
+.where { display: flex; align-items: center; gap: 6px; margin-bottom: var(--sp-2); }
+.where[hidden] { display: none; }
+.wlabel { flex: none; font-size: var(--fs-label); font-weight: 700; color: var(--muted); padding-right: 2px; }
+.where button { flex: 1 1 auto; min-width: 0; justify-content: center; display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 0 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  font: inherit; font-size: var(--fs-label); font-weight: 700; border: 2px solid var(--line); background: var(--card); color: var(--ink); }
+.where button i { font-style: normal; font-weight: 400; font-size: var(--fs-meta); color: var(--muted); font-variant-numeric: tabular-nums; }
+.where button[aria-pressed="true"] { border-color: var(--mint); background: #3fd6a626; }
+.where button[aria-pressed="true"] i { color: var(--ink); }
+@container (max-width: 18rem) { .where button i { display: none; } }
+.sect { margin-top: var(--sp-3); }
+.sect h2 { margin: 0; font-size: var(--fs-label); font-weight: 800; color: var(--muted); }
 .pltools { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-.pltools button, .row button { font: inherit; font-size: 0.8125rem; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; padding: 5px 10px; cursor: pointer; }
+.pltools button, .row button { font: inherit; font-size: var(--fs-label); border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; min-height: var(--tap); padding: 0 var(--sp-3); cursor: pointer; }
 
-.filterbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 8px 2px; font-size: 0.8125rem; color: var(--muted); }
-.filterbar b { color: var(--ink); }
-.filterbar select { font: inherit; font-size: 0.8125rem; padding: 4px 8px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); }
+.filterbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 8px 2px; font-size: var(--fs-label); color: var(--muted); }
+.filterbar b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.filterbar select { font: inherit; font-size: var(--fs-label); min-height: var(--tap); padding: 0 var(--sp-2); border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); }
 .hint { margin: 16px auto; text-align: center; color: var(--pink); font-weight: 700; }
 
-.list { list-style: none; padding: 0; margin: 0 0 24px; display: grid; gap: 10px; }
-.card { background: var(--card); border-radius: 18px; padding: 12px 14px; box-shadow: var(--shadow); border: 1.5px solid var(--line);
-  border-left: 5px solid var(--pink); display: grid; gap: 7px; animation: pop .25s ease; }
+.list { list-style: none; padding: 0; margin: 0 0 var(--sp-6); display: grid; gap: var(--sp-3); }
+.card { position: relative; background: var(--card); border-radius: 18px; padding: var(--sp-3) 14px; box-shadow: var(--shadow); border: 1.5px solid var(--line);
+  border-left: 5px solid var(--pink); display: grid; gap: var(--sp-2); animation: pop .25s ease; }
+/* ♥ 是卡片主要動作，放右上角；跟 🐞 拉開距離，晃動中不會誤觸回報 */
+.card .heart { position: absolute; top: 2px; right: 2px; }
+.card .r1 { padding-right: var(--tap); }
+.card .bug { margin-left: auto; }
 @keyframes pop { from { opacity: 0; transform: translateY(6px); } }
 .r1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.title { font-size: 1.125rem; font-weight: 800; }
-.kana { font-size: 0.8125rem; color: var(--muted); }
-.zh { font-size: 0.875rem; color: #b57cff; font-weight: 700; }
+.title { font-size: var(--fs-title); font-weight: 800; line-height: 1.3; text-wrap: pretty; }
+.kana { font-size: var(--fs-meta); color: var(--muted); }
+.zh { font-size: var(--fs-label); color: #b57cff; font-weight: 700; }
 .zh::before { content: "「"; } .zh::after { content: "」"; }
-.artist { font-size: 0.875rem; color: var(--blue); text-decoration: none; font-weight: 700; margin-left: auto; }
+.artist { font-size: var(--fs-label); color: var(--blue); text-decoration: none; font-weight: 700; margin-left: auto;
+  /* 點擊範圍上下各撐 10px，不改變排版高度 */
+  padding: 10px 0; margin-block: -10px; }
 .artist:hover { text-decoration: underline; }
-.r2 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.8125rem; }
+.r2 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--fs-label); }
 .anime small { color: var(--muted); }
+/* 動漫名自成一行；類別、年份、舞、🐞 固定在下一行，🐞 不會被擠到孤零零一行 */
+.r2 .anime { flex-basis: 100%; }
 .muted { color: var(--muted); }
-.tag { background: var(--pink2); border-radius: 8px; padding: 1px 8px; font-size: 0.75rem; font-weight: 700; }
-.tag.yr { background: #c9d8ff66; }
-.badge { font-size: 0.6875rem; font-weight: 800; border-radius: 6px; padding: 1px 6px; }
+.tag { background: var(--pink2); border-radius: 8px; padding: 1px 8px; font-size: var(--fs-meta); font-weight: 700; }
+.tag.yr { background: #c9d8ff66; font-variant-numeric: tabular-nums; }
+.badge { font-size: var(--fs-meta); font-weight: 800; border-radius: 6px; padding: 1px 6px; }
 .badge.dance { background: #ffe066; color: #7a5a00; }
 .r3 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .ktv { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8125rem; padding: 3px 9px 3px 4px; border-radius: 999px; background: #8881; color: var(--muted); }
@@ -108,54 +152,74 @@ h1 { margin: 0; font-size: clamp(1.25rem, 5vw, 1.75rem); font-weight: 800; lette
 .lamp.on { background: var(--mint); box-shadow: 0 0 8px var(--mint); }
 .lamp.off { background: #c9c2d6; }
 .lamp.unk { background: transparent; border: 1.5px dashed var(--muted); color: var(--muted); }
-.tools { margin-left: auto; display: flex; gap: 4px; }
-.tools button { border: 0; background: none; font-size: 1.125rem; cursor: pointer; color: #d6c8dd; padding: 2px 4px; }
-.tools .heart.on { color: var(--pink); }
-.tools .bug { font-size: 0.875rem; opacity: .55; }
-.empty { text-align: center; color: var(--muted); padding: 30px 0; line-height: 1.8; }
+.heart, .bug { border: 0; background: none; cursor: pointer; padding: 0; min-width: var(--tap); min-height: var(--tap); display: inline-grid; place-items: center; border-radius: 12px; }
+.heart { font-size: 1.25rem; color: #d6c8dd; }
+.heart.on { color: var(--pink); }
+.bug { font-size: 0.875rem; opacity: .55; margin-block: -8px; }
+.empty { text-align: center; color: var(--muted); padding: 30px 0; line-height: 1.8; text-wrap: balance; }
 .empty a { color: var(--pink); }
 
-.foot { padding-bottom: 28px; text-align: center; font-size: 0.8125rem; color: var(--muted); }
-.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; align-items: center; }
+.foot { padding-bottom: 28px; text-align: center; font-size: var(--fs-label); color: var(--muted); }
+/* 圖例放在清單正上方，看卡片時不用滑到頁尾查「?」「舞」的意思 */
+.legend { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); align-items: center; margin: 0 2px var(--sp-3); font-size: var(--fs-meta); color: var(--muted); }
+.legend[hidden] { display: none; }
+.legend > span { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.legend .pendingnote { flex-basis: 100%; }
+.legend .pendingnote:empty { display: none; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.clearq { margin-top: var(--sp-3); min-height: var(--tap); padding: 0 var(--sp-4); font: inherit; font-weight: 700; border-radius: 999px;
+  border: 2px solid var(--pink2); background: var(--card); color: var(--ink); cursor: pointer; }
 .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0; }
 .actions button { font: inherit; font-weight: 700; padding: 9px 16px; border-radius: 999px; border: 2px solid var(--pink2); background: var(--card); color: var(--ink); cursor: pointer; }
 .actions button:hover { border-color: var(--pink); }
-.upd { font-size: 0.75rem; }
+.upd { font-size: var(--fs-meta); text-wrap: balance; }
 
 dialog { border: 0; border-radius: 22px; padding: 0; max-width: min(420px, calc(100vw - 32px)); background: var(--card); color: var(--ink); box-shadow: 0 20px 50px #0004; }
 dialog::backdrop { background: #3a2e4f66; backdrop-filter: blur(3px); }
 .dlg { padding: 20px; position: relative; background: var(--bg); }
-.dlg h3 { margin: 0 0 8px; color: var(--pink); }
+.dlg h3 { margin: 0 0 8px; padding-right: 2em; color: var(--pink); line-height: 1.35; text-wrap: balance; }
 .dlg p { line-height: 1.7; }
-.close { position: absolute; top: 10px; right: 10px; border: 0; background: none; font-size: 1.125rem; cursor: pointer; color: var(--muted); }
+.close { position: absolute; top: var(--sp-1); right: var(--sp-1); min-width: var(--tap); min-height: var(--tap); border: 0; background: none; font-size: 1.125rem; cursor: pointer; color: var(--muted); }
 .big { display: block; text-align: center; margin-top: 10px; padding: 11px; border-radius: 14px; font-weight: 800; text-decoration: none;
   background: linear-gradient(135deg, var(--pink), #b57cff); color: #fff; }
 .big.ghost { background: none; border: 2px solid var(--line); color: var(--ink); }
 .pllist { display: grid; gap: 8px; margin: 10px 0; }
 .pllist label { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--card); }
 .row { display: flex; gap: 6px; }
-.row input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); }
+.row input { flex: 1; min-width: 0; min-height: var(--tap); font: inherit; padding: 0 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 40px); opacity: 0; transition: .25s; z-index: 20;
-  background: var(--ink); color: var(--bg); padding: 9px 18px; border-radius: 999px; font-size: 0.875rem; pointer-events: none; }
+  background: var(--ink); color: var(--bg); padding: 9px 18px; border-radius: 999px; font-size: var(--fs-label); pointer-events: none; }
 .toast.show { transform: translate(-50%, 0); opacity: 1; }
-@media (max-width: 560px) { .artist { margin-left: 0; width: 100%; } .title { font-size: 1.0625rem; } }
+/* 用 left/right 置中，訊息寬度可用到整個畫面（left:50% 只剩半個畫面寬，會把字擠到斷行） */
+.toast, .toast.show { left: 16px; right: 16px; margin: 0 auto; width: fit-content; max-width: 560px; text-align: center; }
+.toast { transform: translateY(40px); }
+.toast.show { transform: none; }
+.toast.act { pointer-events: auto; display: flex; align-items: center; gap: var(--sp-3); padding-right: 6px; }
+.toast button { flex: none; min-height: 36px; padding: 0 var(--sp-3); font: inherit; font-weight: 800; border: 0; border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.field { display: grid; gap: var(--sp-1); font-size: var(--fs-label); font-weight: 700; margin: var(--sp-3) 0; }
+.field input, .field-input { width: 100%; min-height: var(--tap); font: inherit; font-weight: 400; padding: 0 var(--sp-3); border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); }
+.chip { overflow-wrap: anywhere; }
+@media (max-width: 560px) { .artist { margin-left: 0; width: 100%; } }
 
-/* 顯示設定列 */
-.prefs { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+/* 顯示設定 */
 .fs { display: inline-flex; align-items: center; gap: 6px; }
-.fs button { font: inherit; font-weight: 800; font-size: 1rem; min-width: 52px; min-height: 40px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
-.fs b { min-width: 3em; text-align: center; font-size: .9rem; }
+.fs button { font: inherit; font-weight: 800; font-size: 1rem; min-width: 52px; min-height: var(--tap); border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+.fs b { min-width: 3em; text-align: center; font-size: var(--fs-label); }
 .th { margin: 0; }
-.th button { min-height: 36px; }
 :root[data-theme="eye"] .sakura { opacity: .25; }
 :root[data-theme="eye"] h1 { background: none; color: var(--pink); }
-.zhs { color: var(--muted); font-size: .85em; }
+.zhs { color: var(--muted); }
+/* 歌名、動漫名、副標整段換行，不要把「我推的孩子」拆成「我推的孩／子」；真的放不下才斷字 */
+.sub, .zh, .zhs, .anime [lang="ja"] { word-break: keep-all; overflow-wrap: anywhere; }
 /* 第三行：4 家 KTV 一排 */
-.r3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.ktv { justify-content: center; padding: 6px 4px; border-radius: 12px; font-size: .9rem; border: 1.5px solid transparent; white-space: nowrap; }
+.r3 { display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 6px; }
+/* 字級調大後一排放不下 4 家（約需 15.6rem），改成 2×2，避免卡片被撐出螢幕 */
+.card { container-type: inline-size; }
+@container (max-width: 15.75rem) { .r3 { grid-template-columns: repeat(2, 1fr); } }
+.ktv { justify-content: center; padding: 6px 4px; border-radius: 12px; font-size: var(--fs-label); border: 1.5px solid transparent; white-space: nowrap; }
 .ktv.y { border-color: var(--mint); }
 .ktv.n { opacity: .75; }
+/* 所在那家排第一格並加粗外框 */
+.ktv.me { font-weight: 800; border-width: 2.5px; }
+.ktv.me.u, .ktv.me.n { border-color: var(--muted); }
 .lamp { width: 1.25em; height: 1.25em; font-size: .8rem; flex: none; }
-.r2 .tools { margin-left: auto; }
-.tools button { min-width: 40px; min-height: 36px; }
-body { line-height: 1.5; }

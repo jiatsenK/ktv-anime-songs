@@ -9,7 +9,7 @@
   const NON_ANIME = "（非動漫歌曲）";
 
   let DB = { songs: [], ktvs: [] };
-  const state = { tab: "all", q: "", filter: null, artistType: "female", animeSort: "kana", ktv: null, sort: "year", playlist: null };
+  const state = { tab: "all", q: "", filter: null, artistType: "female", animeSort: "kana", sort: "year", playlist: null };
 
   // ---------- 模糊搜尋 ----------
   const kata2hira = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
@@ -83,27 +83,46 @@
   const inAnyPl = (id) => playlists.some((p) => p.songs.includes(id));
 
   // ---------- 畫面 ----------
-  const lamp = (v) => (v === 1 ? '<span class="lamp on" title="可點播">✓</span>' : v === 0 ? '<span class="lamp off" title="無">✕</span>' : '<span class="lamp unk" title="待確認">?</span>');
+  // 燈號：符號只給眼睛看，報讀時唸「凱悅：可點播」
+  const LAMP = { 1: ["y", "on", "✓", "可點播"], 0: ["n", "off", "✕", "沒有"] };
+  const ktvCell = (k, v, me) => {
+    const [cls, lc, sym, word] = LAMP[v] || ["u", "unk", "?", "待確認"];
+    return `<span class="ktv ${cls}${me ? " me" : ""}" title="${esc(k)}：${word}"><span class="lamp ${lc}" aria-hidden="true">${sym}</span>${esc(k)}<span class="sr">：${word}</span></span>`;
+  };
   function card(s) {
-    const kana = s.kana && s.kana !== s.title ? `<span class="kana">${esc(s.kana)}</span>` : "";
+    const kana = s.kana && s.kana !== s.title ? `<span class="kana" lang="ja">${esc(s.kana)}</span>` : "";
     const zh = s.zh ? `<span class="zh">${esc(s.zh)}</span>` : "";
     const anime = s.anime
-      ? `<span class="anime">📺 ${esc(s.animeJa)}${s.animeZh && s.animeZh !== s.animeJa ? ` <span class="zhs">${esc(s.animeZh)}</span>` : ""}</span>`
-      : `<span class="anime muted">🎵 アニメ以外 <span class="zhs">非動漫歌曲</span></span>`;
+      ? `<span class="anime">📺 <span lang="ja">${esc(s.animeJa)}</span>${s.animeZh && s.animeZh !== s.animeJa ? ` <span class="zhs">${esc(s.animeZh)}</span>` : ""}</span>`
+      : `<span class="anime muted">🎵 <span lang="ja">アニメ以外</span> <span class="zhs">非動漫歌曲</span></span>`;
     return `<li class="card" data-id="${s.id}">
-      <div class="r1"><b class="title">${esc(s.title)}</b>${kana}${zh}<a class="artist" href="#" data-artist="${esc(s.artist)}">🎙 ${esc(s.artist)}</a></div>
+      <div class="r1"><b class="title" lang="ja">${esc(s.title)}</b>${kana}${zh}<a class="artist" href="#" data-artist="${esc(s.artist)}">🎙 ${esc(s.artist)}</a></div>
+      <button class="heart ${inAnyPl(s.id) ? "on" : ""}" data-fav="${s.id}" aria-label="${inAnyPl(s.id) ? "已收藏，管理歌單" : "加入歌單"}">♥</button>
       <div class="r2">${anime}${s.type ? `<span class="tag">${esc(s.type)}</span>` : ""}${s.year ? `<span class="tag yr">${s.year}</span>` : ""}${/舞/.test(s.note) ? '<span class="badge dance">舞</span>' : ""}
-        <span class="tools"><button class="heart ${inAnyPl(s.id) ? "on" : ""}" data-fav="${s.id}" aria-label="加入歌單">♥</button><button class="bug" data-bug="${s.id}" aria-label="回報這首歌的錯誤">🐞</button></span></div>
-      <div class="r3">${DB.ktvs.map((k) => `<span class="ktv ${s.ktv[k] === 1 ? "y" : s.ktv[k] === 0 ? "n" : "u"}" title="${esc(k)}：${s.ktv[k] === 1 ? "可點播" : s.ktv[k] === 0 ? "無" : "待確認"}">${lamp(s.ktv[k])}<span>${esc(k)}</span></span>`).join("")}</div>
+        <button class="bug" data-bug="${s.id}" aria-label="回報這首歌的錯誤">🐞</button></div>
+      <div class="r3" style="--n:${DB.known.length}">${ktvOrder().map((k) => ktvCell(k, s.ktv[k], k === prefs.where)).join("")}</div>
     </li>`;
   }
 
+  // ---------- 我在哪家 KTV（全站狀態，存在 prefs.where；"" = 全部） ----------
+  // 選了一家：✓ 列為可點、? 列為可能有、✕ 不顯示；歌單例外，✕ 集中放最後不藏
+  const ktvOrder = () => (prefs.where ? [prefs.where, ...DB.known.filter((k) => k !== prefs.where)] : DB.known);
+  const reachable = (s) => !prefs.where || s.ktv[prefs.where] !== 0;
+  const pool = () => DB.songs.filter(reachable);
+  function renderWhere() {
+    const el = $("#where");
+    if (!DB.known.length) { el.hidden = true; return; }
+    const btn = (k, label, n) => `<button data-where="${esc(k)}" aria-pressed="${prefs.where === k}">${label}${n != null ? `<i>${n}</i>` : ""}</button>`;
+    el.innerHTML = `<span class="wlabel" aria-hidden="true">我在</span>${btn("", "全部")}${DB.known.map((k) => btn(k, esc(k), DB.songs.filter((s) => s.ktv[k] === 1).length)).join("")}`;
+    el.hidden = false;
+  }
+
   function chips(items, active, attr) {
-    return items.map(([v, label, n]) => `<button class="chip ${active === v ? "on" : ""}" data-${attr}="${esc(v)}">${label}${n != null ? `<i>${n}</i>` : ""}</button>`).join("");
+    return items.map(([v, label, n]) => `<button class="chip ${active === v ? "on" : ""}" aria-pressed="${active === v}" data-${attr}="${esc(v)}">${label}${n != null ? `<i>${n}</i>` : ""}</button>`).join("");
   }
   function countBy(fn) {
     const m = new Map();
-    for (const s of DB.songs) { const k = fn(s); m.set(k, (m.get(k) || 0) + 1); }
+    for (const s of pool()) { const k = fn(s); m.set(k, (m.get(k) || 0) + 1); }
     return m;
   }
   const GOJUON = "あかさたなはまやらわ";
@@ -122,14 +141,17 @@
     if (state.tab === "artist") {
       const cnt = countBy((s) => s.artist);
       const typeOf = new Map(DB.songs.map((s) => [s.artist, s.artistType]));
-      h = `<div class="seg">${["female", "male", "band", "other"].filter((t) => [...typeOf.values()].includes(t))
-        .map((t) => `<button class="${state.artistType === t ? "on" : ""}" data-atype="${t}">${TYPE_LABEL[t]}</button>`).join("")}</div>`;
+      const types = new Set([...cnt.keys()].map((a) => typeOf.get(a)));
+      if (!types.has(state.artistType)) state.artistType = ["female", "male", "band", "other"].find((t) => types.has(t)) || state.artistType;
+      h = `<div class="seg">${["female", "male", "band", "other"].filter((t) => types.has(t))
+        .map((t) => `<button class="${state.artistType === t ? "on" : ""}" aria-pressed="${state.artistType === t}" data-atype="${t}">${TYPE_LABEL[t]}</button>`).join("")}</div>`;
       const list = [...cnt].filter(([a]) => typeOf.get(a) === state.artistType).sort((a, b) => jaColl.compare(a[0], b[0]));
       h += `<div class="chips">${chips(list.map(([a, n]) => [a, esc(a), n]), state.filter?.v, "artist")}</div>`;
     } else if (state.tab === "anime") {
-      h = `<div class="seg"><button class="${state.animeSort === "kana" ? "on" : ""}" data-asort="kana">あいう 50音（日文名）</button><button class="${state.animeSort === "stroke" ? "on" : ""}" data-asort="stroke">一二三 中文筆畫</button></div>`;
+      h = `<div class="seg">${[["kana", "あいう 50音（日文名）"], ["stroke", "一二三 中文筆畫"]]
+        .map(([v, t]) => `<button class="${state.animeSort === v ? "on" : ""}" aria-pressed="${state.animeSort === v}" data-asort="${v}">${t}</button>`).join("")}</div>`;
       const m = new Map();
-      for (const s of DB.songs) if (s.anime) { const k = animeKey(s); if (!m.has(k)) m.set(k, { k, s, n: 0 }); m.get(k).n++; }
+      for (const s of pool()) if (s.anime) { const k = animeKey(s); if (!m.has(k)) m.set(k, { k, s, n: 0 }); m.get(k).n++; }
       const arr = [...m.values()].sort((a, b) => cmpAnime(a.s, b.s, state.animeSort));
       let last = "";
       h += '<div class="chips">';
@@ -137,10 +159,11 @@
         const grp = state.animeSort === "kana" ? gyou(s.animeKana || s.animeJa) : [...s.animeZh.replace(/^[【\[(（]/, "")][0];
         if (grp !== last) { h += `<span class="grp">${esc(grp)}</span>`; last = grp; }
         const [main, sub] = [s.animeJa, s.animeZh]; // 統一日文在前、繁中在後
-        h += `<button class="chip ${state.filter?.v === k ? "on" : ""}" data-anime="${esc(k)}">${esc(main)}${sub !== main ? `<small>${esc(sub)}</small>` : ""}<i>${n}</i></button>`;
+        h += `<button class="chip ${state.filter?.v === k ? "on" : ""}" aria-pressed="${state.filter?.v === k}" data-anime="${esc(k)}"><span lang="ja">${esc(main)}</span>${sub !== main ? `<small>${esc(sub)}</small>` : ""}<i>${n}</i></button>`;
       }
-      const nn = DB.songs.filter((s) => !s.anime).length;
-      h += `<span class="grp">其他</span><button class="chip ${state.filter?.v === NON_ANIME ? "on" : ""}" data-anime="${NON_ANIME}">アニメ以外<small>非動漫歌曲</small><i>${nn}</i></button></div>`;
+      const nn = pool().filter((s) => !s.anime).length;
+      if (nn) h += `<span class="grp">其他</span><button class="chip ${state.filter?.v === NON_ANIME ? "on" : ""}" aria-pressed="${state.filter?.v === NON_ANIME}" data-anime="${NON_ANIME}"><span lang="ja">アニメ以外</span><small>非動漫歌曲</small><i>${nn}</i></button>`;
+      h += "</div>";
     } else if (state.tab === "year") {
       const cnt = countBy((s) => s.year || 0);
       const ys = [...cnt].sort((a, b) => b[0] - a[0]);
@@ -151,13 +174,8 @@
         hh += chips([[String(y), y || "不明", n]], state.filter?.v, "year");
       }
       h = hh + "</div>";
-    } else if (state.tab === "ktv") {
-      h = `<div class="ktvpick">${DB.ktvs.map((k) => {
-        const n = DB.songs.filter((s) => s.ktv[k] === 1).length;
-        return `<button class="ktvbtn ${state.ktv === k ? "on" : ""}" data-ktv="${esc(k)}"><span class="lampbig">🎤</span>${esc(k)}<i>${n} 首可點</i></button>`;
-      }).join("")}</div>`;
     } else if (state.tab === "fav") {
-      h = `<div class="chips">${playlists.map((p) => `<button class="chip ${state.playlist === p.id ? "on" : ""}" data-pl="${p.id}">♥ ${esc(p.name)}<i>${p.songs.length}</i></button>`).join("")}
+      h = `<div class="chips">${playlists.map((p) => `<button class="chip ${state.playlist === p.id ? "on" : ""}" aria-pressed="${state.playlist === p.id}" data-pl="${p.id}">♥ ${esc(p.name)}<i>${p.songs.length}</i></button>`).join("")}
         <button class="chip add" data-plnew>＋ 新歌單</button></div>`;
       const p = playlists.find((x) => x.id === state.playlist);
       if (p) h += `<div class="pltools"><button data-plren>✏️ 重新命名</button><button data-plshare>🔗 分享歌單</button><button data-pldel>🗑 刪除</button></div>`;
@@ -167,58 +185,83 @@
   }
 
   function currentSongs() {
-    let list = DB.songs;
+    let list;
     const f = state.filter;
     if (state.tab === "fav") {
       const p = playlists.find((x) => x.id === state.playlist);
       const ids = p ? p.songs : [];
       const byId = new Map(DB.songs.map((s) => [s.id, s]));
       list = ids.map((id) => byId.get(id)).filter(Boolean);
-    } else if (state.tab === "ktv" && state.ktv) {
-      list = list.filter((s) => s.ktv[state.ktv] === 1);
-    } else if (f) {
-      if (f.t === "artist") list = list.filter((s) => s.artist === f.v);
-      if (f.t === "anime") list = list.filter((s) => animeKey(s) === f.v);
-      if (f.t === "year") list = list.filter((s) => String(s.year || 0) === f.v);
+    } else {
+      list = pool();
+      if (f?.t === "artist") list = list.filter((s) => s.artist === f.v);
+      if (f?.t === "anime") list = list.filter((s) => animeKey(s) === f.v);
+      if (f?.t === "year") list = list.filter((s) => String(s.year || 0) === f.v);
     }
-    if (state.q) return search(list, state.q);
-    if (state.tab === "fav") return list;
-    const sort = state.tab === "anime" ? (state.animeSort === "kana" ? "animeKana" : "animeStroke") : state.sort;
-    return [...list].sort(SORTS[sort]);
+    if (state.q) list = search(list, state.q);
+    else if (state.tab !== "fav") {
+      const sort = state.tab === "anime" ? (state.animeSort === "kana" ? "animeKana" : "animeStroke") : state.sort;
+      list = [...list].sort(SORTS[sort]);
+    }
+    // 依所在 KTV 分組（排序或搜尋名次在組內保持不變）
+    const w = prefs.where;
+    if (!w) return [{ songs: list }];
+    return [
+      { songs: list.filter((s) => s.ktv[w] === 1) },
+      { title: `${w}可能有（待確認）`, songs: list.filter((s) => s.ktv[w] == null) },
+      { title: `${w}點不到`, songs: list.filter((s) => s.ktv[w] === 0) },
+    ].filter((g) => g.songs.length);
   }
 
+  // 螢幕閱讀器：結果數量改變時唸一次（內容沒變就不重唸）
+  const announce = (t) => { const el = $("#status"); if (el.textContent !== t) el.textContent = t; };
   function render() {
+    document.querySelectorAll(".tabs button").forEach((b) => { const on = b.dataset.tab === state.tab; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+    renderWhere();
     renderFacet();
-    const needPick = (["artist", "anime", "year"].includes(state.tab) && !state.filter && !state.q) || (state.tab === "ktv" && !state.ktv && !state.q);
+    const needPick = ["artist", "anime", "year"].includes(state.tab) && !state.filter && !state.q;
     const fb = $("#filterbar");
     if (needPick) {
-      fb.innerHTML = `<p class="hint">↑ 請選擇一個${{ artist: "歌手", anime: "動漫", year: "年份", ktv: "KTV" }[state.tab]}</p>`;
+      fb.innerHTML = `<p class="hint">↑ 先從上面選${{ artist: "一位歌手", anime: "一部動漫", year: "一個年份" }[state.tab]}</p>`;
+      announce(fb.textContent.replace("↑ ", ""));
       $("#list").innerHTML = "";
       $("#empty").hidden = true;
+      $("#legend").hidden = true;
       return;
     }
-    const list = currentSongs();
-    const label = state.filter ? state.filter.label : state.tab === "ktv" ? `${state.ktv} 可點播` : "";
+    const groups = currentSongs();
+    const total = groups.reduce((n, g) => n + g.songs.length, 0);
+    const w = prefs.where;
+    const can = w ? groups.find((g) => !g.title)?.songs.length || 0 : total;
+    const maybe = w ? groups.find((g) => g.title?.includes("待確認"))?.songs.length || 0 : 0;
+    const count = !w ? `${total} 首` : state.tab === "fav" ? `${total} 首 · ${esc(w)}可點 ${can} 首` : `${esc(w)}可點 ${can} 首${maybe ? `，另有 ${maybe} 首待確認` : ""}`;
+    const label = state.filter ? state.filter.label : "";
     const sortSel = state.q || state.tab === "fav" || state.tab === "anime" ? "" :
       `<select id="sort" aria-label="排序">${[["year", "年份 新→舊"], ["title", "歌名 50音"], ["artist", "歌手"], ["animeKana", "動漫 50音"], ["animeStroke", "動漫 中文筆畫"]]
         .map(([v, t]) => `<option value="${v}" ${state.sort === v ? "selected" : ""}>${t}</option>`).join("")}</select>`;
-    fb.innerHTML = `<span class="res">${label ? `<b>${esc(label)}</b> · ` : ""}${list.length} 首${state.q ? `（搜尋「${esc(state.q)}」）` : ""}</span>${sortSel}`;
-    $("#list").innerHTML = list.map(card).join("");
+    fb.innerHTML = `<span class="res">${label ? `<b>${esc(label)}</b> · ` : ""}${count}${state.q ? `（搜尋「${esc(state.q)}」）` : ""}</span>${sortSel}`;
+    $("#list").innerHTML = groups.map((g) => (g.title ? `<li class="sect"><h2>${esc(g.title)}</h2></li>` : "") + g.songs.map(card).join("")).join("");
+    $("#legend").hidden = !total;
+    announce(total ? $(".res", fb).textContent : "找不到符合的歌");
     const empty = $("#empty");
-    empty.hidden = list.length > 0;
-    if (state.tab === "fav" && !list.length) empty.innerHTML = "這個歌單還是空的～<br>在歌曲卡片按 ♥ 就能收藏 ✧";
-    else empty.innerHTML = '找不到符合的歌曲 (´・ω・`)<br>試試其他關鍵字，或<a href="#" data-open="feedback">告訴我們想新增的歌</a>';
+    empty.hidden = total > 0;
+    const q = esc(state.q), clear = '<br><button class="clearq" data-clearq>清除搜尋</button>';
+    if (state.tab === "fav" && !state.q) empty.innerHTML = "這個歌單還是空的～<br>在歌曲卡片按 ♥ 就能收藏 ✧";
+    else if (state.tab === "fav") empty.innerHTML = `這個歌單裡沒有符合「${q}」的歌${clear}`;
+    else if (w) empty.innerHTML = `${esc(w)}目前沒有符合的歌<br><button class="clearq" data-where="">看全部 KTV</button>${state.q ? clear : ""}`;
+    else empty.innerHTML = `找不到「${q}」(´・ω・\`)<br>日文、中文、羅馬拼音都能搜<br>換個寫法試試看，或<a href="#" data-open="feedback">告訴我們想新增這首歌</a>${clear}`;
   }
 
   // ---------- 顯示設定：字級、護眼（存在本機） ----------
   const PREF = "ktv-anime-prefs";
-  let prefs = { size: 1, theme: "eye" };
+  let prefs = { size: 1, theme: "eye", where: "" };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF))); } catch {}
   const SIZES = [0.9, 1, 1.15, 1.3, 1.5];
   function applyPrefs() {
-    document.documentElement.style.fontSize = 18 * SIZES[prefs.size] + "px";
+    // 用百分比而非 px：保留使用者在瀏覽器／系統設定的預設字級（預設 16px × 112.5% = 18px）
+    document.documentElement.style.fontSize = 112.5 * SIZES[prefs.size] + "%";
     document.documentElement.dataset.theme = prefs.theme;
-    document.querySelectorAll("[data-theme-set]").forEach((b) => b.classList.toggle("on", b.dataset.themeSet === prefs.theme));
+    document.querySelectorAll("[data-theme-set]").forEach((b) => { const on = b.dataset.themeSet === prefs.theme; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
     const lbl = $("#fsval"); if (lbl) lbl.textContent = ["小", "標準", "大", "特大", "超大"][prefs.size];
     try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch {}
   }
@@ -226,36 +269,62 @@
 
   // ---------- 對話框：歌單 / 反饋 / 回報 / 贊助 ----------
   const dlg = $("#dlg"), body = $("#dlgbody");
-  const toast = (t) => { const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 1800); };
+  // undo：給一個函式就多一顆「復原」，提示停留 6 秒讓人來得及按
+  const toast = (t, undo) => {
+    const el = $("#toast");
+    el.innerHTML = esc(t) + (undo ? ' <button type="button" data-undo>復原</button>' : "");
+    el.classList.toggle("act", !!undo); el.classList.add("show");
+    toast.undo = undo;
+    clearTimeout(toast.t); toast.t = setTimeout(() => { el.classList.remove("show", "act"); toast.undo = null; }, undo ? 6000 : 1800);
+  };
+  const hideToast = () => { clearTimeout(toast.t); $("#toast").classList.remove("show", "act"); toast.undo = null; };
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  const PL_MAX = 30;
   const issueUrl = (title, text, label) => `https://github.com/${CFG.repo}/issues/new?labels=${encodeURIComponent(label)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(text)}`;
 
   function openFav(id) {
     const s = DB.songs.find((x) => x.id === id);
-    body.innerHTML = `<h3>♥ 加入歌單</h3><p class="muted">${esc(s.title)} — ${esc(s.artist)}</p>
+    body.innerHTML = `<h3 id="dlgtitle">♥ 加入歌單</h3><p class="muted">${esc(s.title)} — ${esc(s.artist)}</p>
       <div class="pllist">${playlists.map((p) => `<label><input type="checkbox" data-plcheck="${p.id}" ${p.songs.includes(id) ? "checked" : ""}> ${esc(p.name)}</label>`).join("")}</div>
-      <div class="row"><input id="newpl" placeholder="新歌單名稱"><button type="button" data-plcreate="${id}">建立並加入</button></div>`;
+      <div class="row"><input id="newpl" placeholder="新歌單名稱" aria-label="新歌單名稱" maxlength="${PL_MAX}" data-enter="plcreate"><button type="button" data-plcreate="${id}">建立並加入</button></div>`;
     body.dataset.song = id;
     dlg.showModal();
+  }
+  // 新增／重新命名歌單：取代原生 prompt()，長輩不會誤以為是可疑彈窗
+  function openPlName(mode) {
+    const p = playlists.find((x) => x.id === state.playlist);
+    const val = mode === "ren" ? p.name : `歌單 ${playlists.length + 1}`;
+    body.innerHTML = `<h3 id="dlgtitle">${mode === "ren" ? "✏️ 重新命名歌單" : "＋ 新歌單"}</h3>
+      <label class="field">歌單名稱<input id="plname" value="${esc(val)}" maxlength="${PL_MAX}" data-enter="plsave"></label>
+      <button type="button" class="big" data-plsave="${mode}">${mode === "ren" ? "儲存" : "建立歌單"}</button>`;
+    dlg.showModal();
+    const inp = $("#plname"); inp.focus(); inp.select();
+  }
+  function openShareUrl(url) {
+    body.innerHTML = `<h3 id="dlgtitle">🔗 分享歌單</h3><p>這台裝置不能直接分享或複製，請長按下面的連結複製後傳給朋友：</p>
+      <input id="shareurl" class="field-input" value="${esc(url)}" readonly aria-label="分享連結">`;
+    dlg.showModal();
+    const inp = $("#shareurl"); inp.focus(); inp.select();
   }
   function openInfo(kind, songId) {
     const s = songId && DB.songs.find((x) => x.id === songId);
     if (kind === "donate") {
       const links = (CFG.donate || []).map((d) => `<a class="big" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a>`).join("");
-      body.innerHTML = `<h3>☕ 贊助支持</h3><p>整理每家 KTV 的曲目需要不少時間，如果這個網站幫上你的忙，歡迎請作者喝杯飲料，讓更新持續下去 (〃∀〃)ゞ</p>
+      body.innerHTML = `<h3 id="dlgtitle">☕ 贊助支持</h3><p>整理每家 KTV 的曲目需要不少時間，如果這個網站幫上你的忙，歡迎請作者喝杯飲料，讓更新持續下去 (〃∀〃)ゞ</p>
         ${links || `<p class="muted">贊助管道準備中，先幫忙分享給朋友也是很大的支持！</p>`}
         <a class="big ghost" href="https://github.com/${CFG.repo}" target="_blank" rel="noopener">⭐ 到 GitHub 按星星</a>`;
     } else {
       const isReport = kind === "report";
       const form = isReport ? CFG.reportForm : CFG.feedbackForm;
-      const title = isReport ? (s ? `[錯誤回報] ${s.title} - ${s.artist}` : "[錯誤回報] ") : "[內容反饋] ";
+      const title = isReport ? (s ? `[錯誤回報] ${s.title} - ${s.artist}` : "[錯誤回報] ") : "[意見回饋] ";
       const text = isReport
         ? `### 哪一首歌\n${s ? `${s.title} / ${s.artist}（id: ${s.id}）` : ""}\n\n### 哪裡有錯（例如：某家 KTV 其實點得到、假名或中譯錯誤）\n\n\n### 正確資料／歌曲編號（可選）\n`
         : `### 想新增的歌曲或建議\n- 歌名：\n- 歌手：\n- 動漫：\n- 哪家 KTV 有：\n`;
-      const url = form || issueUrl(title, text, isReport ? "錯誤回報" : "內容反饋");
-      body.innerHTML = `<h3>${isReport ? "🐞 錯誤回報" : "💌 內容反饋"}</h3>
-        <p>${isReport ? "發現 KTV 亮燈不正確、歌名／假名／中譯有誤？" : "想新增歌曲、補充資料，或對網站有建議？"}歡迎告訴我們，確認後會更新到表單並同步到 App。</p>
+      const url = form || issueUrl(title, text, isReport ? "錯誤回報" : "意見回饋");
+      body.innerHTML = `<h3 id="dlgtitle">${isReport ? "🐞 錯誤回報" : "💌 意見回饋"}</h3>
+        <p>${isReport ? "發現 KTV 亮燈不正確、歌名／假名／中譯有誤？" : "想新增歌曲、補充資料，或對網站有建議？"}歡迎告訴我們，確認後就會更新到網站上。</p>
         ${s ? `<p class="muted">歌曲：${esc(s.title)} — ${esc(s.artist)}</p>` : ""}
-        <a class="big" href="${esc(url)}" target="_blank" rel="noopener">${form ? "開啟表單" : "前往 GitHub 填寫（需登入）"}</a>`;
+        <a class="big" href="${esc(url)}" target="_blank" rel="noopener">${form ? "開啟表單" : "到 GitHub 填寫（需要 GitHub 帳號）"}</a>`;
     }
     dlg.showModal();
   }
@@ -265,18 +334,25 @@
     const t = e.target.closest("button, a");
     if (!t) return;
     const d = t.dataset;
+    if (d.prefs != null) {
+      const open = t.getAttribute("aria-expanded") !== "true";
+      t.setAttribute("aria-expanded", open); $("#prefs").hidden = !open;
+      return;
+    }
+    if (d.reload != null) return location.reload();
+    if (d.undo != null) { const fn = toast.undo; hideToast(); if (fn) { fn(); render(); } return; }
+    if (d.clearq != null) { state.q = ""; $("#q").value = ""; $("#q").focus(); return render(); }
     if (d.fs) { prefs.size = Math.max(0, Math.min(SIZES.length - 1, prefs.size + +d.fs)); return applyPrefs(); }
     if (d.themeSet) { prefs.theme = d.themeSet; return applyPrefs(); }
     if (d.tab) {
       state.tab = d.tab; state.filter = null;
       if (d.tab === "fav" && !state.playlist) state.playlist = playlists[0].id;
-      document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b === t));
     } else if (d.atype) state.artistType = d.atype;
     else if (d.asort) state.animeSort = d.asort;
     else if (d.artist != null) {
       e.preventDefault();
       const a = d.artist;
-      if (state.tab !== "artist") { state.tab = "artist"; document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === "artist")); }
+      state.tab = "artist";
       state.artistType = DB.songs.find((s) => s.artist === a)?.artistType || state.artistType;
       state.filter = state.filter?.v === a && t.classList.contains("chip") ? null : { t: "artist", v: a, label: a };
       state.q = ""; $("#q").value = "";
@@ -285,33 +361,38 @@
       const s = DB.songs.find((x) => animeKey(x) === d.anime);
       state.filter = state.filter?.v === d.anime ? null : { t: "anime", v: d.anime, label: s?.anime ? `${s.animeJa}　${s.animeZh}` : "非動漫歌曲" };
     } else if (d.year != null) state.filter = state.filter?.v === d.year ? null : { t: "year", v: d.year, label: d.year === "0" ? "年份不明" : d.year + " 年" };
-    else if (d.ktv) state.ktv = state.ktv === d.ktv ? null : d.ktv;
+    else if (d.where != null) { prefs.where = d.where; applyPrefs(); }
     else if (d.pl) state.playlist = d.pl;
-    else if (d.plnew != null) {
-      const n = prompt("新歌單名稱", `歌單 ${playlists.length + 1}`);
-      if (!n) return;
-      const p = { id: Date.now().toString(36), name: n.trim(), songs: [] };
-      playlists.push(p); state.playlist = p.id; savePl();
-    } else if (d.plren != null) {
-      const p = playlists.find((x) => x.id === state.playlist);
-      const n = prompt("歌單名稱", p.name); if (!n) return; p.name = n.trim(); savePl();
+    else if (d.plnew != null) return openPlName("new");
+    else if (d.plren != null) return openPlName("ren");
+    else if (d.plsave) {
+      // 名稱空白時沿用原名或預設名，不讓使用者卡住
+      const n = $("#plname").value.trim().slice(0, PL_MAX);
+      if (d.plsave === "ren") { const p = playlists.find((x) => x.id === state.playlist); if (n) p.name = n; }
+      else { const p = { id: newId(), name: n || `歌單 ${playlists.length + 1}`, songs: [] }; playlists.push(p); state.playlist = p.id; }
+      savePl(); dlg.close();
     } else if (d.pldel != null) {
-      const p = playlists.find((x) => x.id === state.playlist);
-      if (!confirm(`確定刪除「${p.name}」？`)) return;
+      // 先刪、給 6 秒「復原」，取代無法回頭的 confirm()
+      const i = playlists.findIndex((x) => x.id === state.playlist), p = playlists[i];
+      const before = playlists.slice();
       playlists = playlists.filter((x) => x !== p);
-      if (!playlists.length) playlists = [{ id: "fav", name: "我的最愛", songs: [] }];
-      state.playlist = playlists[0].id; savePl();
+      if (!playlists.length) playlists = [{ id: newId(), name: "我的最愛", songs: [] }];
+      state.playlist = playlists[Math.max(0, i - 1)].id; savePl();
+      toast(`已刪除「${p.name}」`, () => { playlists = before; state.playlist = p.id; savePl(); });
     } else if (d.plshare != null) {
       const p = playlists.find((x) => x.id === state.playlist);
+      if (!p.songs.length) return toast("歌單還是空的，先收藏幾首再分享吧");
       const url = `${location.origin}${location.pathname}#pl=${encodeURIComponent(p.name)}&ids=${p.songs.join(",")}`;
-      (navigator.share ? navigator.share({ title: p.name, url }) : navigator.clipboard.writeText(url).then(() => toast("已複製分享連結"))).catch(() => {});
+      if (navigator.share) navigator.share({ title: p.name, url }).catch(() => {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => toast("已複製分享連結"), () => openShareUrl(url));
+      else openShareUrl(url);
       return;
     } else if (d.fav) return openFav(d.fav);
     else if (d.bug) return openInfo("report", d.bug);
     else if (d.open) { e.preventDefault(); return openInfo(d.open); }
     else if (d.plcreate) {
-      const n = $("#newpl").value.trim(); if (!n) return;
-      playlists.push({ id: Date.now().toString(36), name: n, songs: [d.plcreate] }); savePl();
+      const n = $("#newpl").value.trim().slice(0, PL_MAX); if (!n) { $("#newpl").focus(); return; }
+      playlists.push({ id: newId(), name: n, songs: [d.plcreate] }); savePl();
       toast(`已加入「${n}」`); dlg.close();
     } else return;
     render();
@@ -323,6 +404,13 @@
     savePl(); toast(e.target.checked ? `已加入「${p.name}」` : `已從「${p.name}」移除`);
   });
   dlg.addEventListener("close", () => render());
+  // 對話框是 <form method="dialog">：在輸入框按 Enter 會直接關掉。改成觸發該欄位對應的按鈕
+  dlg.addEventListener("keydown", (e) => {
+    const go = e.key === "Enter" && !e.isComposing && e.target.dataset?.enter;
+    if (!go) return;
+    e.preventDefault();
+    $(`[data-${go}]`, body)?.click();
+  });
   document.addEventListener("change", (e) => { if (e.target.id === "sort") { state.sort = e.target.value; render(); } });
   let qt;
   $("#q").addEventListener("input", (e) => { clearTimeout(qt); qt = setTimeout(() => { state.q = e.target.value.trim(); render(); }, 120); });
@@ -331,13 +419,18 @@
   function importShared() {
     const m = /#pl=([^&]*)&ids=([\w,]*)/.exec(location.hash);
     if (!m) return;
-    const name = decodeURIComponent(m[1]), ids = m[2].split(",").filter(Boolean);
+    let name = "朋友的歌單";
+    try { name = decodeURIComponent(m[1]).trim().slice(0, PL_MAX) || name; } catch {}
+    const all = [...new Set(m[2].split(",").filter(Boolean))];
+    // 朋友的資料版本比較新時，有些歌這裡還沒有：只匯入找得到的，並說明略過幾首
+    const ids = all.filter((id) => DB.songs.some((s) => s.id === id));
     history.replaceState(null, "", location.pathname);
-    if (!ids.length || !confirm(`匯入朋友分享的歌單「${name}」（${ids.length} 首）？`)) return;
-    const p = { id: Date.now().toString(36), name, songs: ids };
+    if (!ids.length) { if (all.length) toast("分享的歌在目前資料裡都找不到，可能資料還沒更新"); return; }
+    if (!confirm(`匯入朋友分享的歌單「${name}」（${ids.length} 首）？`)) return;
+    const p = { id: newId(), name, songs: ids };
     playlists.push(p); savePl();
     state.tab = "fav"; state.playlist = p.id;
-    document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === "fav"));
+    if (ids.length < all.length) toast(`已匯入 ${ids.length} 首，另有 ${all.length - ids.length} 首這裡還沒有資料，先略過`);
   }
 
   fetch("data/songs.json", { cache: "no-cache" }).then((r) => r.json()).then((db) => {
@@ -348,11 +441,18 @@
       s._o = norm([s.anime, s.animeZh, s.animeJa, s.animeKana, s.type, s.year].join("|"));
       s.kanaSort = /^[ぁ-ヿ]/.test(s.kana) ? s.kana : s.title;
     }
+    // 整家都還沒填資料的 KTV：卡片上不顯示燈號，KTV 分頁標「曲目整理中」；一有資料就自動恢復
+    DB.pending = DB.ktvs.filter((k) => DB.songs.every((s) => s.ktv[k] == null));
+    DB.known = DB.ktvs.filter((k) => !DB.pending.includes(k));
+    if (prefs.where && !DB.known.includes(prefs.where)) { prefs.where = ""; applyPrefs(); }
+    $("#pendingnote").textContent = DB.pending.length ? `${DB.pending.join("、")}的曲目還在整理中，目前先不顯示。` : "";
     $("#count").textContent = DB.songs.length;
     $("#updated").textContent = new Date(DB.updated).toLocaleDateString("zh-TW");
     importShared();
     render();
-  }).catch(() => { $("#list").innerHTML = '<li class="empty">資料載入失敗，請重新整理 (；´Д｀)</li>'; });
+  }).catch(() => {
+    $("#list").innerHTML = '<li class="empty">歌曲資料沒有載入成功，可能是網路不穩 (；´Д｀)<br><button class="clearq" data-reload>重新載入</button></li>';
+  });
 
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 })();

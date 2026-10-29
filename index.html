@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="assets/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Huninn&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,49 +19,62 @@
 
 <header class="top">
   <div class="brand">
-    <span class="logo">🎤</span>
+    <span class="logo" aria-hidden="true">🎤</span>
     <div>
       <h1>KTV 動漫歌點播站</h1>
-      <p class="sub">アニソン・カラオケ検索 動漫歌KTV查詢 ✦ <span id="count">…</span> 首已確認</p>
+      <p class="sub"><span lang="ja">アニソン・カラオケ検索</span> 動漫歌KTV查詢 ✦ <span id="count">…</span> 首已確認</p>
     </div>
+    <button class="prefsbtn" data-prefs aria-expanded="false" aria-controls="prefs" aria-label="字級與主題設定"><b>Aa</b>字級</button>
   </div>
-  <div class="prefs" aria-label="顯示設定">
-    <span class="fs"><button data-fs="-1" aria-label="字變小">A－</button><b id="fsval">標準</b><button data-fs="1" aria-label="字變大">A＋</button></span>
-    <span class="seg th"><button data-theme-set="eye">🌿 護眼</button><button data-theme-set="light">☀️ 明亮</button><button data-theme-set="dark">🌙 夜間</button></span>
+  <div class="prefs" id="prefs" role="group" aria-label="顯示設定" hidden>
+    <div class="prow"><span class="plabel">字級</span>
+      <span class="fs"><button data-fs="-1" aria-label="字變小">A－</button><b id="fsval">標準</b><button data-fs="1" aria-label="字變大">A＋</button></span></div>
+    <div class="prow"><span class="plabel">主題</span>
+      <span class="seg th"><button data-theme-set="eye">🌿 護眼</button><button data-theme-set="light">☀️ 明亮</button><button data-theme-set="dark">🌙 夜間</button></span></div>
   </div>
+</header>
+
+<div class="bar">
+  <div id="where" class="where" role="group" aria-label="我在哪家 KTV" hidden></div>
   <div class="searchbox">
-    <span class="mag">🔍</span>
-    <input id="q" type="search" placeholder="搜尋歌名、歌手、動漫…（中／日／英、假名、羅馬拼音皆可）" autocomplete="off">
+    <span class="mag" aria-hidden="true">🔍</span>
+    <input id="q" type="search" aria-label="搜尋歌名、歌手、動漫" enterkeyhint="search" placeholder="搜尋歌名、歌手、動漫…（中／日／英、假名、羅馬拼音皆可）" autocomplete="off">
   </div>
-  <nav class="tabs" role="tablist">
+  <nav class="tabs" aria-label="分類">
     <button data-tab="all" class="on">全部</button>
     <button data-tab="artist">歌手</button>
     <button data-tab="anime">動漫</button>
     <button data-tab="year">年份</button>
-    <button data-tab="ktv">各家KTV</button>
     <button data-tab="fav">♥ 我的歌單</button>
   </nav>
-</header>
+</div>
 
 <main>
   <section id="facet" class="facet"></section>
   <div id="filterbar" class="filterbar"></div>
+  <div id="legend" class="legend" hidden>
+    <span><span class="lamp on" aria-hidden="true">✓</span>可點播</span>
+    <span><span class="lamp off" aria-hidden="true">✕</span>沒有</span>
+    <span><span class="lamp unk" aria-hidden="true">?</span>待確認</span>
+    <span><span class="badge dance">舞</span>有舞蹈 MV／舞曲</span>
+    <span id="pendingnote" class="pendingnote"></span>
+  </div>
   <ul id="list" class="list"></ul>
   <p id="empty" class="empty" hidden>找不到符合的歌曲 (´・ω・`)<br>試試其他關鍵字，或<a href="#" data-open="feedback">告訴我們想新增的歌</a></p>
 </main>
 
 <footer class="foot">
-  <div class="legend"><span class="lamp on">✓</span>可點播 <span class="lamp off">✕</span>無 <span class="lamp unk">?</span>待確認 <span class="badge dance">舞</span>有舞蹈 MV／舞曲</div>
   <div class="actions">
-    <button data-open="feedback">💌 內容反饋</button>
+    <button data-open="feedback">💌 意見回饋</button>
     <button data-open="report">🐞 錯誤回報</button>
     <button data-open="donate">☕ 贊助支持</button>
   </div>
-  <p class="upd">資料更新：<span id="updated"></span>　僅顯示已確認曲目，待確認資料將於表單更新後同步。</p>
+  <p class="upd">資料更新：<span id="updated"></span>　只列出至少一家 KTV 確認過的歌；「?」表示這家 KTV 還在確認中。</p>
 </footer>
 
-<dialog id="dlg"><form method="dialog" class="dlg"><div id="dlgbody"></div><button class="close" value="x" aria-label="關閉">✕</button></form></dialog>
+<dialog id="dlg" aria-labelledby="dlgtitle"><form method="dialog" class="dlg"><div id="dlgbody"></div><button class="close" value="x" aria-label="關閉">✕</button></form></dialog>
 <div id="toast" class="toast" role="status"></div>
+<p id="status" class="sr" role="status"></p>
 
 <script src="config.js"></script>
 <script src="app.js"></script>
